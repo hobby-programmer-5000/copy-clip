@@ -22,6 +22,12 @@ Want the hands-free version? Open [`index.html#demo`](https://starknightt.github
 
 ## Installation
 
+### Windows desktop build
+
+The portable Windows app (`CopyClip.exe`) requires the Microsoft Edge WebView2 Evergreen Runtime. If the runtime is missing, install the **Evergreen Bootstrapper** and reopen Copy Clip. [Microsoft WebView2 downloads](https://developer.microsoft.com/microsoft-edge/webview2/#download)
+
+Windows 포터블 앱(`CopyClip.exe`)을 실행하려면 Microsoft Edge WebView2 Evergreen 런타임이 필요합니다. 런타임이 없다면 **Evergreen Bootstrapper**로 설치한 뒤 앱을 다시 실행하세요. [Microsoft WebView2 다운로드](https://developer.microsoft.com/ko-kr/microsoft-edge/webview2/#download)
+
 ### One-file install
 
 Copy [`index.html`](index.html) into your project. That's it. It has no dependencies and only reaches the network for Google Fonts.
