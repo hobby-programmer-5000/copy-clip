@@ -961,14 +961,40 @@ if (withToolbar) {
   }
   const defaultTitle = cardTitle.textContent;
   const draftStatus = $('#draft-status');
-  const restored = nativeHost ? await requestNative({ type: 'load-draft' }) : null;
+  const draftKey = 'copyclip.draft';
+
+  function loadBrowserDraft() {
+    try {
+      const stored = localStorage.getItem(draftKey);
+      if (stored === null) return { loaded: true, draft: null };
+      const draft = JSON.parse(stored);
+      if (typeof draft?.title === 'string' && draft.title.length > 0 && draft.title.length <= titleInput.maxLength &&
+          typeof draft.text === 'string' && (draft.pendingText === null || typeof draft.pendingText === 'string')) {
+        return { loaded: true, draft };
+      }
+    } catch {
+      // The browser may block storage or the saved data may be unreadable.
+    }
+    return { loaded: false, draft: null };
+  }
+
+  function saveBrowserDraft(draft) {
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(draft));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const restored = nativeHost ? await requestNative({ type: 'load-draft' }) : loadBrowserDraft();
   if (restored?.draft) {
     text = restored.draft.text;
     cardTitle.textContent = restored.draft.title;
   }
   let pendingText = restored?.draft?.pendingText ?? null;
   let draftRevision = 0;
-  let draftError = nativeHost && restored?.loaded !== true ? 'draftReadFailure' : null;
+  let draftError = restored?.loaded !== true ? 'draftReadFailure' : null;
 
   function showDraftStatus() {
     draftStatus.hidden = !draftError;
@@ -976,14 +1002,13 @@ if (withToolbar) {
   }
 
   async function saveDraft() {
-    if (!nativeHost) return;
     const revision = ++draftRevision;
-    const result = await requestNative({
-      type: 'save-draft',
-      draft: { title: cardTitle.textContent, text, pendingText }
-    });
+    const draft = { title: cardTitle.textContent, text, pendingText };
+    const saved = nativeHost
+      ? (await requestNative({ type: 'save-draft', draft }))?.saved === true
+      : saveBrowserDraft(draft);
     if (revision !== draftRevision) return;
-    draftError = result?.saved === true ? null : 'draftWriteFailure';
+    draftError = saved ? null : 'draftWriteFailure';
     showDraftStatus();
   }
 
@@ -1069,10 +1094,8 @@ if (withToolbar) {
     editor.showModal();
   });
   function rememberEditorInput() {
-    if (nativeHost) {
-      pendingText = input.value;
-      saveDraft();
-    }
+    pendingText = input.value;
+    saveDraft();
     showEditorError(null);
   }
   input.addEventListener('input', rememberEditorInput);
@@ -1126,11 +1149,11 @@ if (withToolbar) {
     saveDraft();
     updatePreview();
   });
+  if (pendingText !== null) {
+    input.value = pendingText;
+    editor.showModal();
+  }
   if (nativeHost) {
-    if (pendingText !== null) {
-      input.value = pendingText;
-      editor.showModal();
-    }
     const widgetButton = $('#open-widget'), widgetStatus = $('#widget-status');
     const widgetMenu = $('#widget-menu'), widgetRestore = $('#widget-restore');
     $('#advanced').addEventListener('click', () => { widgetStatus.hidden = true; });
