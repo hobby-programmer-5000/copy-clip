@@ -13,7 +13,7 @@ The packaged app was tested on Windows 10 22H2 x64. See Microsoft's support matr
 Install [Node.js 22 or newer](https://nodejs.org/), the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0), and WebView2 Evergreen. Then run:
 
 ```powershell
-git clone https://github.com/StarKnightt/copy-clip.git
+git clone --branch feature/draft-recovery https://github.com/hobby-programmer-5000/copy-clip.git
 cd copy-clip
 npm install
 npm start
@@ -25,9 +25,11 @@ npm start
 2. Click **Apply**, then **Copy**. Press **Ctrl+V** in the app where you want to paste it. The card previews the first eight lines and clips long lines to fit. Copy sends the full text, including text beyond the preview. Very long entries use plain colors to keep editing responsive.
 3. Use **Use sample** in the editor to restore the example. Choose **한국어** from the language menu or use the speaker button in the upper right to mute the copy animation's sound effects.
 
-If another program has locked the clipboard, wait briefly and select **Copy** again. You can also select the text in the editor and press **Ctrl+C**. Copy Clip keeps edited text in the current window. Windows manages the system clipboard and its history settings.
+If another program has locked the clipboard, wait briefly and select **Copy** again. You can also select the text in the editor and press **Ctrl+C**. Windows manages the system clipboard and its history settings.
 
-Click the card title to rename it. Press **Enter** or click away to apply, or **Esc** to cancel. Clear the title to restore `debounce.js`. The title stays with the current window as you edit the code.
+The Windows app and widget save your text and confirmed card title as you edit. Reopen the app under the same Windows account to restore your last saved work. If the app closes before you apply a draft in **Edit text**, it reopens the dialog with that draft. Choose **Cancel** to discard the draft and return to the previous card text.
+
+Click the card title to rename it. Press **Enter** or click away to apply, or **Esc** to cancel. Clear the title to restore `debounce.js`.
 
 ## Advanced
 
@@ -48,4 +50,4 @@ dotnet publish windows/CopyClip.csproj -c Release -r win-x64 --self-contained tr
 
 Run `windows/bin/Release/net10.0-windows/win-x64/publish/CopyClip.exe`. Keep the whole publish directory together when sharing it. This build includes the .NET Desktop Runtime and uses the separately installed WebView2 Evergreen Runtime.
 
-Version 0.4.8 was built with SDK 10.0.403. Check the bundled runtime notices when updating the SDK.
+Version 0.4.9 was built with SDK 10.0.403. Check the bundled runtime notices when updating the SDK.

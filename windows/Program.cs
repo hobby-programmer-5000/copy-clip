@@ -78,7 +78,8 @@ internal sealed class CopyClipWindow : Form
                 if (!e.Request.Uri.StartsWith("https://" + Host + "/", StringComparison.Ordinal))
                     e.Response = environment.CreateWebResourceResponse(null, 403, "Forbidden", "");
             };
-            browser.WebMessageReceived += HandleWebMessage;
+            var drafts = new DraftStore(Path.Combine(environment.UserDataFolder, "copyclip-draft.json"));
+            browser.WebMessageReceived += (sender, message) => HandleWebMessage(sender, message, drafts);
             browser.SetVirtualHostNameToFolderMapping(Host, Path.GetDirectoryName(pagePath)!, CoreWebView2HostResourceAccessKind.Deny);
             var uiCulture = JsonSerializer.Serialize(CultureInfo.CurrentUICulture.Name);
             await browser.AddScriptToExecuteOnDocumentCreatedAsync(
@@ -104,7 +105,7 @@ internal sealed class CopyClipWindow : Form
         Close();
     }
 
-    private void HandleWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
+    private void HandleWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs args, DraftStore drafts)
     {
         if (sender is not CoreWebView2 browser || args.Source != AppPage || browser.Source != AppPage)
             return;
@@ -117,7 +118,16 @@ internal sealed class CopyClipWindow : Form
             !request.TryGetProperty("type", out var type) || type.ValueKind != JsonValueKind.String)
             return;
 
-        if (type.ValueEquals("open-browser"))
+        if (type.ValueEquals("load-draft"))
+        {
+            var (loaded, snapshot) = drafts.Load();
+            browser.PostWebMessageAsJson(JsonSerializer.Serialize(new { id = requestId, loaded, draft = snapshot }, JsonSerializerOptions.Web));
+        }
+        else if (type.ValueEquals("save-draft") && request.TryGetProperty("draft", out var draft))
+        {
+            browser.PostWebMessageAsJson(JsonSerializer.Serialize(new { id = requestId, saved = drafts.Save(draft) }));
+        }
+        else if (type.ValueEquals("open-browser"))
         {
             browser.PostWebMessageAsJson(JsonSerializer.Serialize(new { id = requestId, opened = OpenBrowser() }));
         }

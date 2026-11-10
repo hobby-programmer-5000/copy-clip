@@ -13,7 +13,7 @@ x64 ZIP 파일 전체를 한 폴더에 풀고 `CopyClip.exe`를 실행하세요.
 [Node.js 22 이상](https://nodejs.org/), [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0), WebView2 Evergreen 런타임을 설치한 다음 실행하세요.
 
 ```powershell
-git clone https://github.com/StarKnightt/copy-clip.git
+git clone --branch feature/draft-recovery https://github.com/hobby-programmer-5000/copy-clip.git
 cd copy-clip
 npm install
 npm start
@@ -25,7 +25,9 @@ npm start
 2. **적용** 후 **복사**를 누르고, 붙여넣을 앱에서 **Ctrl+V**를 누르세요. 카드에는 최대 8줄이 보이고 긴 줄은 카드 너비에 맞춰 잘립니다. 미리보기에 보이지 않는 부분도 복사됩니다. 아주 긴 텍스트에는 편집이 느려지지 않도록 기본 글자색을 사용합니다.
 3. 편집 창의 **예제 사용**으로 예제를 복원할 수 있습니다. 왼쪽 위 메뉴에서 **English**로 전환할 수 있습니다. 오른쪽 위 스피커 버튼은 복사 애니메이션의 효과음을 켜거나 끕니다.
 
-다른 프로그램이 클립보드를 사용 중이면 잠시 기다렸다가 **복사**를 다시 누르세요. 편집 창에서 텍스트를 선택하고 **Ctrl+C**로 복사할 수도 있습니다. 편집한 텍스트는 앱 창을 열어 둔 동안 유지됩니다. 시스템 클립보드와 기록 설정은 Windows에서 관리합니다.
+다른 프로그램이 클립보드를 사용 중이면 잠시 기다렸다가 **복사**를 다시 누르세요. 편집 창에서 텍스트를 선택하고 **Ctrl+C**로 복사할 수도 있습니다. 시스템 클립보드와 기록 설정은 Windows에서 관리합니다.
+
+Windows 앱과 위젯에서 작성한 텍스트와 확정한 카드 제목은 자동 저장됩니다. 다음에 앱을 열면 같은 Windows 계정에서 마지막으로 저장된 내용이 복원됩니다. **텍스트 편집** 창에서 적용하기 전에 종료하면 다시 열 때 그 창에서 이어 쓸 수 있습니다. **취소**를 누르면 그 초안을 버리고 기존 카드 내용으로 돌아갑니다.
 
 카드 제목을 클릭해서 이름을 바꿀 수 있습니다. **Enter**를 누르거나 다른 곳을 클릭하면 적용되고, **Esc**를 누르면 취소됩니다. 제목을 비우면 `debounce.js`로 돌아갑니다. 코드를 편집해도 현재 창에서 정한 제목은 유지됩니다.
 
@@ -48,4 +50,4 @@ dotnet publish windows/CopyClip.csproj -c Release -r win-x64 --self-contained tr
 
 `windows/bin/Release/net10.0-windows/win-x64/publish/CopyClip.exe`를 실행하세요. 공유할 때는 publish 폴더 전체를 함께 전달하세요. 빌드에는 .NET Desktop Runtime이 포함되며, WebView2 Evergreen 런타임은 Windows에 별도로 설치되어 있어야 합니다.
 
-0.4.8은 SDK 10.0.403으로 빌드했습니다. SDK를 업데이트할 때는 패키지의 런타임 고지를 확인하세요.
+0.4.9는 SDK 10.0.403으로 빌드했습니다. SDK를 업데이트할 때는 패키지의 런타임 고지를 확인하세요.

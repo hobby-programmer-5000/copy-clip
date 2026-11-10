@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
+#draft-status{position:fixed;z-index:95;bottom:16px;left:50%;transform:translateX(-50%);
+  max-width:calc(100vw - 24px);margin:0;padding:8px 12px;border-radius:8px;background:#842f31;color:white}
 :root{
   --bg-hi:#EFEEEA; --bg:#E5E3DD; --bg-lo:#D9D6CE;
   --card:#FBFAF7; --ink:#23211D; --muted:#8C877D; --line:rgba(45,38,28,.09);
@@ -324,6 +326,7 @@ html.demo .cursor{display:block}
   <svg class="off" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8.5h3.5L11 4.5v13l-4.5-4H3z" fill="currentColor"/><path d="M14.5 8.5l5 5M19.5 8.5l-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
 </button>
 <div class="sr" id="live" aria-live="polite"></div>
+<p id="draft-status" role="status" hidden></p>
 
 <div class="widget-menu" id="widget-menu" popover>
   <button id="widget-restore" type="button" autofocus>Normal window</button>
@@ -767,7 +770,9 @@ const strings = {
     browserFailure: 'Could not copy. Select the code and press Ctrl+C.',
     empty: 'Enter text to copy, then try again.',
     invalid: 'This text contains a null character. Remove it and try again.',
-    mute: 'Mute sound', unmute: 'Unmute sound', plain: 'Plain text', cardTitle: 'Card title'
+    mute: 'Mute sound', unmute: 'Unmute sound', plain: 'Plain text', cardTitle: 'Card title',
+    draftReadFailure: 'Could not restore your last draft.',
+    draftWriteFailure: 'Could not save your draft. Try editing again.'
   },
   ko: {
     edit: '텍스트 편집', hint: '미리보기는 최대 8줄입니다. 복사하면 전체 텍스트가 클립보드에 들어갑니다.',
@@ -788,7 +793,9 @@ const strings = {
     browserFailure: '복사하지 못했습니다. 코드를 선택하고 Ctrl+C를 누르세요.',
     empty: '복사할 텍스트를 입력한 뒤 다시 시도하세요.',
     invalid: '널 문자가 포함되어 있습니다. 해당 문자를 지우고 다시 시도하세요.',
-    mute: '소리 끄기', unmute: '소리 켜기', plain: '일반 텍스트', cardTitle: '카드 제목'
+    mute: '소리 끄기', unmute: '소리 켜기', plain: '일반 텍스트', cardTitle: '카드 제목',
+    draftReadFailure: '마지막 초안을 복원하지 못했습니다.',
+    draftWriteFailure: '초안을 저장하지 못했습니다. 다시 편집해 보세요.'
   },
   ...Object.fromEntries(Object.entries(window.copyClipLocales ?? {}).map(([id, locale]) => [id, locale.messages]))
 };
@@ -953,7 +960,34 @@ if (withToolbar) {
     editorError.textContent = key ? words[key] : '';
   }
   const defaultTitle = cardTitle.textContent;
-  titleInput.value = defaultTitle;
+  const draftStatus = $('#draft-status');
+  const restored = nativeHost ? await requestNative({ type: 'load-draft' }) : null;
+  if (restored?.draft) {
+    text = restored.draft.text;
+    cardTitle.textContent = restored.draft.title;
+  }
+  let pendingText = restored?.draft?.pendingText ?? null;
+  let draftRevision = 0;
+  let draftError = nativeHost && restored?.loaded !== true ? 'draftReadFailure' : null;
+
+  function showDraftStatus() {
+    draftStatus.hidden = !draftError;
+    draftStatus.textContent = draftError ? words[draftError] ?? strings.en[draftError] : '';
+  }
+
+  async function saveDraft() {
+    if (!nativeHost) return;
+    const revision = ++draftRevision;
+    const result = await requestNative({
+      type: 'save-draft',
+      draft: { title: cardTitle.textContent, text, pendingText }
+    });
+    if (revision !== draftRevision) return;
+    draftError = result?.saved === true ? null : 'draftWriteFailure';
+    showDraftStatus();
+  }
+
+  titleInput.value = cardTitle.textContent;
   cardTitle.hidden = true;
   titleInput.hidden = false;
   titleInput.addEventListener('blur', () => {
@@ -961,6 +995,7 @@ if (withToolbar) {
     titleInput.value = value;
     if (value === cardTitle.textContent) return;
     cardTitle.textContent = value;
+    saveDraft();
     updatePreview();
   });
   titleInput.addEventListener('keydown', event => {
@@ -1004,6 +1039,7 @@ if (withToolbar) {
     btn.setAttribute('aria-label', words.copy);
     muteBtn.setAttribute('aria-label', Audio.muted ? words.unmute : words.mute);
     updatePreview();
+    showDraftStatus();
     fit();
   }
 
@@ -1032,13 +1068,29 @@ if (withToolbar) {
     showEditorError(null);
     editor.showModal();
   });
-  input.addEventListener('input', () => showEditorError(null));
+  function rememberEditorInput() {
+    if (nativeHost) {
+      pendingText = input.value;
+      saveDraft();
+    }
+    showEditorError(null);
+  }
+  input.addEventListener('input', rememberEditorInput);
   $('#sample').addEventListener('click', () => {
     input.value = CODE;
-    showEditorError(null);
+    rememberEditorInput();
     input.focus();
   });
-  $('#cancel').addEventListener('click', () => editor.close());
+  function discardEditorDraft() {
+    if (pendingText === null) return;
+    pendingText = null;
+    saveDraft();
+  }
+  editor.addEventListener('cancel', discardEditorDraft);
+  $('#cancel').addEventListener('click', () => {
+    discardEditorDraft();
+    editor.close();
+  });
   $('#save').addEventListener('click', () => {
     const error = textError(input.value);
     if (error) {
@@ -1047,6 +1099,8 @@ if (withToolbar) {
       return;
     }
     text = input.value;
+    pendingText = null;
+    saveDraft();
     if (directEdit.checked) cardInput.value = text;
     updatePreview();
     editor.close();
@@ -1069,9 +1123,14 @@ if (withToolbar) {
   cardInput.addEventListener('scroll', drawCard);
   cardInput.addEventListener('input', () => {
     text = cardInput.value;
+    saveDraft();
     updatePreview();
   });
   if (nativeHost) {
+    if (pendingText !== null) {
+      input.value = pendingText;
+      editor.showModal();
+    }
     const widgetButton = $('#open-widget'), widgetStatus = $('#widget-status');
     const widgetMenu = $('#widget-menu'), widgetRestore = $('#widget-restore');
     $('#advanced').addEventListener('click', () => { widgetStatus.hidden = true; });
